@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Cost Estimator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .table-cell {
+            padding: 12px 16px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+        }
+        .header-cell {
+            background-color: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+        }
+        .input-field {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            transition: border-color 0.2s;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+        }
+        .footer-label {
+            text-align: right;
+            font-weight: bold;
+            font-size: 1.125rem; /* text-lg */
+            color: #374151; /* text-gray-700 */
+        }
+        .footer-value {
+            font-weight: bold;
+            font-size: 1.125rem; /* text-lg */
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-5xl">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Project Cost Estimator</h1>
+            <p class="mt-2 text-gray-600">Enter the projected hours for each team member to calculate the estimated project cost.</p>
+        </header>
+
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full" id="cost-table">
+                    <thead>
+                        <tr>
+                            <th class="header-cell table-cell">Team Member</th>
+                            <th class="header-cell table-cell">Role</th>
+                            <th class="header-cell table-cell">Yearly Salary (€)</th>
+                            <th class="header-cell table-cell">Hourly Rate (€)</th>
+                            <th class="header-cell table-cell">Projected Hours</th>
+                            <th class="header-cell table-cell">Subtotal (€)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Team members will be dynamically inserted here -->
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="5" class="table-cell footer-label">Total Estimated Project Cost (EUR):</td>
+                            <td id="total-cost-eur" class="table-cell footer-value text-indigo-600">€0.00</td>
+                        </tr>
+                        <tr>
+                            <td colspan="5" class="table-cell footer-label">Total Estimated Project Cost (USD):</td>
+                            <td id="total-cost-usd" class="table-cell footer-value text-green-600">$0.00</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <footer class="mt-8 text-center text-sm text-gray-500">
+            <p>Assuming a standard 2,080 work hours per year (40 hours/week * 52 weeks).</p>
+            <p id="exchange-rate-info" class="mt-1"></p>
+        </footer>
+    </div>
+
+    <script>
+        // --- DATA ---
+        const team = [
+            { name: 'Sam', role: 'Senior Manager', salary: 65752.00 },
+            { name: 'Juli', role: 'Senior Manager', salary: 58780.00 },
+            { name: 'Maria', role: 'Manager', salary: 42838.00 },
+            { name: 'Andrés', role: 'Manager', salary: 47848.00 },
+            { name: 'Julián', role: 'Manager', salary: 54695.00 }
+        ];
+
+        // --- CONSTANTS ---
+        const HOURS_PER_YEAR = 2080; // Standard work hours in a year (40h/week * 52 weeks)
+        const EUR_TO_USD_RATE = 1.07; // Exchange rate as of August 2025
+
+        // --- DOM ELEMENTS ---
+        const tableBody = document.querySelector('#cost-table tbody');
+        const totalCostEurEl = document.getElementById('total-cost-eur');
+        const totalCostUsdEl = document.getElementById('total-cost-usd');
+        const exchangeRateInfoEl = document.getElementById('exchange-rate-info');
+
+
+        // --- FUNCTIONS ---
+
+        /**
+         * Calculates the hourly rate from a yearly salary.
+         * @param {number} yearlySalary - The yearly salary.
+         * @returns {number} The calculated hourly rate.
+         */
+        function calculateHourlyRate(yearlySalary) {
+            return yearlySalary / HOURS_PER_YEAR;
+        }
+
+        /**
+         * Formats a number as currency.
+         * @param {number} amount - The number to format.
+         * @param {string} currency - The currency code (e.g., 'EUR', 'USD').
+         * @param {string} locale - The locale string (e.g., 'de-DE', 'en-US').
+         * @returns {string} The formatted currency string.
+         */
+        function formatCurrency(amount, currency, locale) {
+            return new Intl.NumberFormat(locale, { style: 'currency', currency: currency }).format(amount);
+        }
+
+        /**
+         * Updates the total project cost by summing up all subtotals.
+         */
+        function updateTotals() {
+            let totalCostEur = 0;
+            const rows = tableBody.querySelectorAll('tr');
+            rows.forEach(row => {
+                const subtotalText = row.querySelector('.subtotal').textContent;
+                // Convert formatted EUR currency string back to a number
+                const subtotal = parseFloat(subtotalText.replace('€', '').replace(/\./g, '').replace(',', '.').trim());
+                if (!isNaN(subtotal)) {
+                    totalCostEur += subtotal;
+                }
+            });
+
+            const totalCostUsd = totalCostEur * EUR_TO_USD_RATE;
+
+            totalCostEurEl.textContent = formatCurrency(totalCostEur, 'EUR', 'de-DE');
+            totalCostUsdEl.textContent = formatCurrency(totalCostUsd, 'USD', 'en-US');
+        }
+
+        /**
+         * Handles the input event on the hours field.
+         * Recalculates the subtotal for the row and updates the grand total.
+         * @param {Event} event - The input event.
+         * @param {number} hourlyRate - The hourly rate for the team member.
+         */
+        function handleHoursChange(event, hourlyRate) {
+            const hoursInput = event.target;
+            const hours = parseFloat(hoursInput.value) || 0;
+            const subtotal = hours * hourlyRate;
+            
+            const row = hoursInput.closest('tr');
+            const subtotalEl = row.querySelector('.subtotal');
+            subtotalEl.textContent = formatCurrency(subtotal, 'EUR', 'de-DE');
+
+            updateTotals();
+        }
+
+        /**
+         * Renders the initial table with team member data.
+         */
+        function renderTable() {
+            tableBody.innerHTML = ''; // Clear existing rows
+
+            team.forEach(member => {
+                const hourlyRate = calculateHourlyRate(member.salary);
+                const row = document.createElement('tr');
+                row.classList.add('hover:bg-gray-50');
+
+                row.innerHTML = `
+                    <td class="table-cell font-medium text-gray-900">${member.name}</td>
+                    <td class="table-cell text-gray-600">${member.role}</td>
+                    <td class="table-cell text-gray-600">${formatCurrency(member.salary, 'EUR', 'de-DE')}</td>
+                    <td class="table-cell text-gray-600">${formatCurrency(hourlyRate, 'EUR', 'de-DE')}</td>
+                    <td class="table-cell">
+                        <input type="number" min="0" placeholder="0" class="input-field hours-input">
+                    </td>
+                    <td class="table-cell subtotal font-semibold">${formatCurrency(0, 'EUR', 'de-DE')}</td>
+                `;
+
+                const hoursInput = row.querySelector('.hours-input');
+                hoursInput.addEventListener('input', (e) => handleHoursChange(e, hourlyRate));
+                
+                tableBody.appendChild(row);
+            });
+        }
+        
+        /**
+         * Sets the exchange rate information in the footer.
+         */
+        function setExchangeRateInfo() {
+            exchangeRateInfoEl.textContent = `USD conversion based on an exchange rate of 1 EUR = ${EUR_TO_USD_RATE} USD.`;
+        }
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderTable();
+            setExchangeRateInfo();
+            updateTotals(); // Initialize totals at 0.00
+        });
+
+    </script>
+</body>
+</html>
